@@ -72,7 +72,9 @@ function first_payment_offer($vars) {
     # Whether or not to tax the adjustment (if you charge tax, enable this otherwise the tax amount will be of the original price and incorrect)
     $taxed  = true;
 
-    /* ------------------------------------------------- */
+    /* -----------------------------------------*/
+    /* ONLY EDIT VARIABLES ABOVE THIS LINE      */
+    /* -----------------------------------------*/
 
     # Initialize some variables
     $amount             = 0;
@@ -81,7 +83,7 @@ function first_payment_offer($vars) {
     # Loop through the products in the cart
     foreach ($vars['products'] as $product) {
 
-        # Pull out the product ID and billing cycle for the current product
+        # Extract the product ID and billing cycle for the current product
         $productID      = $product['pid'];
         $billingCycle   = $product['billingcycle'];
         
