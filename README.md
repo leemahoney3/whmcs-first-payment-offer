@@ -28,6 +28,8 @@ If you charge tax, ensure to keep the ```$taxed``` variable set to **true**, oth
 
 If you do not charge tax, set ```$taxed``` to **false**.
 
+## WARNING: If you offer promotional codes, this currently only works with percentage and fixed value promotional codes, using others will likely result in a negative cart total and cause other issues.
+
 
 
 ## How to install

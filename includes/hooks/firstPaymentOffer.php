@@ -30,6 +30,9 @@ use WHMCS\Database\Capsule;
  * If you charge tax, ensure to keep the $taxed variable set to true, otherwise the original base price will be taxed.
  * If you do not charge tax, set $taxed to false.
  * 
+ * WARNING: If you offer promotional codes, this currently only works with percentage and fixed value promotional codes, using others will likely
+ *          result in a negative cart total and cause other issues.
+ * 
  * @package    WHMCS
  * @author     Lee Mahoney <lee@leemahoney.dev>
  * @copyright  Copyright (c) Lee Mahoney 2022
@@ -51,9 +54,13 @@ function first_payment_offer($vars) {
     # The price here is the new offer price of the product, it will only apply to the checkout and won't recur.
     $productOverrides = [
 
-        '2' => [
-            'monthly'   => '2.50',
+        '7' => [
+            'monthly'   => '3.50',
             'annually'  => '25.00',
+        ],
+        '2' => [
+            'monthly' => '3.50',
+            'annually' => '25.00'
         ]
 
     ];
@@ -86,9 +93,55 @@ function first_payment_offer($vars) {
                 # Grab the current price of the product based on the $billingCycle variable
                 $productPrice = Capsule::table('tblpricing')->where('type', 'product')->where('relid', $productID)->pluck($billingCycle)->first();
 
-                # Update our total adjustment $amount variable to that of the product's price minus the new offer price listed in the $productOverrides array
-                $amount += ($productPrice - $productOverrides[$productID][$billingCycle]);
+                $newPrice = $productOverrides[$productID][$billingCycle];
 
+                # Check for promo code (could make the total negative..)
+                if ($_SESSION['cart']['promo']) {
+
+                    # Grab the promo code details
+                    $promoDetails = Capsule::table('tblpromotions')->where('code', $_SESSION['cart']['promo'])->first();
+
+                    # Retrieve the applicable cycles from the database and make them an array
+                    $applicablePromoCycles = array_map('strtolower', explode(',', $promoDetails->cycles));
+                    
+                    # Retrieve the applicable products from the database and make them an array
+                    $applicablePromoProducts = explode(',', $promoDetails->appliesto);
+
+                    # Check if the billing cycle of the product is in the $applicablePromoCycles (or if the promo code has none = all cycles), and check the product ID is in the $applicablePromoCycles array
+                    if ((in_array($billingCycle, $applicablePromoCycles) || $promoDetails->cycles == "") && in_array($productID, $applicablePromoProducts)) {
+                        
+                        # If the promo code is a percentage
+                        if ($promoDetails->type == "Percentage") {
+
+                            # Check if the current product price percentage value is greater than the new price percentage value
+                            # If it is, then set the new price (not going to explain this, would take 2 paragraphs)
+                            if (($productPrice / 100) * $promoDetails->value > ($newPrice / 100) * $promoDetails->value) {
+                                $newPrice = (($newPrice / 100) * $promoDetails->value + ($productPrice / 100) * $promoDetails->value - $newPrice);
+                                $newPrice = ($productPrice / 100) * $promoDetails->value - $newPrice;
+                                $override = true;
+                            }
+                            
+                        # If the promo code is a fixed value
+                        } else if ($promoDetails->type == "Fixed Amount") {
+
+                            # Check that the new price minux the fixed value is less than zero, if so then set the new price to the fixed value (will make the final total 0)
+                            if ($newPrice - $promoDetails->value < 0) {
+                                $newPrice = $promoDetails->value;
+                            }
+
+                        }
+
+                    }
+
+                }
+                
+                # If the percentage override is true, handle the final amount differently.
+                if ($override) {
+                    $amount += $newPrice;
+                } else {
+                    $amount += ($productPrice - $newPrice);
+                }
+                
             }
 
         }
