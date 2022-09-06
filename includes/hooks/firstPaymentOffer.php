@@ -54,14 +54,15 @@ function first_payment_offer($vars) {
     # The price here is the new offer price of the product, it will only apply to the checkout and won't recur.
     $productOverrides = [
 
-        '7' => [
+        '1' => [
             'monthly'   => '3.50',
             'annually'  => '25.00',
         ],
+
         '2' => [
-            'monthly' => '3.50',
-            'annually' => '25.00'
-        ]
+            'monthly' => '7.50',
+            'annually' => '85.00',
+        ],
 
     ];
 
